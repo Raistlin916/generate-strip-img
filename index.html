@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>generate strip img</title>
+</head>
+<body>
+  <form>
+    <input type="file" multiple accept="image/*">
+  </form>
+  <script>
+    const fileInput = document.querySelector('input');
+    fileInput.onchange = (e) => {
+      generate(e.target.files);
+    }
+    const generate = (files) => {
+      const pArray = [].map.call(files, (file) => {
+        return new Promise((resolve) => {
+          const img = document.createElement('img');
+          img.src = window.URL.createObjectURL(file);
+          img.onload = () => resolve(img)
+        });
+      });
+      Promise.all(pArray).then((imgs) => {
+        generateStripImg(imgs);
+      });
+    }
+    const generateStripImg = (imgs) => {
+      let maxWidth = 0;
+      let maxHeight = 0;
+      imgs.forEach(item => {
+        maxWidth = Math.max(item.width, maxWidth);
+        maxHeight = Math.max(item.height, maxHeight);
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = maxWidth * imgs.length;
+      canvas.height = maxHeight;
+      const ctx = canvas.getContext('2d');
+      imgs.forEach((item, index) => {
+        ctx.drawImage(item, index * maxWidth + (maxWidth - item.width) / 2, (maxHeight - item.height) / 2);
+      });
+      const stripImg = document.createElement('img');
+      stripImg.src = canvas.toDataURL();
+      document.body.appendChild(stripImg);
+
+      stripImg.onclick = () => {
+        let a = document.createElement('a')
+        a.href = stripImg.src
+        try {
+          a.download = fileInput.files[0].name.match(/^[A-Za-z0-9]+/)[0] + '_strip' + imgs.length;
+        } catch (e) {
+          console.error(e);
+          a.download = 'img_strip' + imgs.length;
+        }
+        a.click();
+      }
+    }
+  </script>
+</body>
+</html>
